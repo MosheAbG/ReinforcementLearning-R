@@ -1,0 +1,353 @@
+### QUESTION 2
+##PART A
+#Just input values of matrix
+SASRp = matrix(c('high','high', 'low', 'low', 'high', 'low', 'low',
+'search', 'search', 'search', 'search', 'wait', 'wait', 'recharge',
+'high', 'low', 'high', 'low', 'high', 'low', 'high',
+2, 2, -3, 2, 1, 1, 0,
+0.6, 0.4, 0.2, 0.8, 1, 1, 1 ),nrow = 7, ncol = 5)
+
+#Part B
+# This function will calculate the value function of the 6 different policies
+# It's input is the actions in both state, matrix from part 1 and a discount factor
+CalculatePolicyValueFunction = function(policy = c(action1, action2), SASRp, DF){
+b = rep(0,2) # create a vector, b vector from equation, 2 entries, 1 for each state 
+   #Depending on the action selected in each state it will generate different values of b
+# b is calculated using the reward multiplied by the state value probabilities
+# This done for all of the same action in each state, so that probabilities will sum to 1 
+if(policy[1] =='search'){
+b[1] = as.numeric(SASRp[1,4]) * as.numeric(SASRp[1,5]) + as.numeric(SASRp[2,4]) * as.numeric(SASRp[2,5])
+}
+if(policy[1] == 'wait'){
+b[1] = as.numeric(SASRp[5,4]) * as.numeric(SASRp[5,5])
+}
+if(policy[2] == 'search'){
+b[2] = as.numeric(SASRp[3,4]) * as.numeric(SASRp[3,5]) + as.numeric(SASRp[4,4]) * as.numeric(SASRp[4,5])
+}
+    if(policy[2] == 'wait'){
+b[2] = as.numeric(SASRp[6,4]) * as.numeric(SASRp[6,5])
+        }
+    if(policy[2] == 'recharge'){
+        b[2] = as.numeric(SASRp[7,4]) * as.numeric(SASRp[7,5])
+        }
+# After calculating b, now calculate M which is a 2x2 matrix
+# with all 4 state choices
+# It depends on both action selected and is calculaed as discount factor multiplied by transisiton state probabilities
+# States which cannot possibly happen will receive a value of 0
+# Do it 6 times for all 6 policies
+    M = matrix(0, nrow = 2, ncol = 2)
+    if(policy[1] == 'search' && policy[2] == 'search'){
+    
+    M[1,1] = DF*(as.numeric(SASRp[1,5]))#Start in high state end in high state
+    M[1,2] = DF*(as.numeric(SASRp[2,5]))#Start in high state end in low state
+    M[2,1] = DF*(as.numeric(SASRp[3,5])) #Start in low state end in high state
+    M[2,2] = DF*(as.numeric(SASRp[4,5])) #Start in low state end in low state            
+    }
+    if(policy[1] == 'search' && policy[2] == 'wait'){
+    
+    M[1,1] = DF*(as.numeric(SASRp[1,5]))#Start in high state end in high state
+    M[1,2] = DF*(as.numeric(SASRp[2,5]))#Start in high state end in low state
+    M[2,1] = 0                          #Start in low state end in high state    
+    M[2,2] = DF*(as.numeric(SASRp[6,5])) #Start in low state end in low state           
+    }
+    if(policy[1] == 'search' && policy[2] == 'recharge'){
+    
+    M[1,1] = DF*(as.numeric(SASRp[1,5]))#Start in high state end in high state
+    M[1,2] = DF*(as.numeric(SASRp[2,5]))#Start in high state end in low state
+    M[2,1] = DF*(as.numeric(SASRp[7,5]))#Start in low state end in high state
+    M[2,2] = 0                          #Start in low state end in low state
+    }
+     if(policy[1] == 'wait' && policy[2] == 'search'){
+    
+    M[1,1] = DF*(as.numeric(SASRp[5,5]))#Start in high state end in high state
+    M[1,2] = 0                          #Start in high state end in low state 
+   M[2,1] = DF*(as.numeric(SASRp[3,5])) #Start in low state end in high state
+    M[2,2] = DF*(as.numeric(SASRp[4,5]))#Start in low state end in low state      
+    }
+    if(policy[1] == 'wait' && policy[2] == 'wait'){
+    
+    M[1,1] = DF*(as.numeric(SASRp[5,5]))#Start in high state end in high state
+    M[1,2] = 0                          #Start in high state end in low state 
+    M[2,1] = 0                          #Start in low state end in high state 
+    M[2,2] = DF*(as.numeric(SASRp[6,5]))#Start in low state end in low state      
+    }
+    if(policy[1] == 'wait' && policy[2] == 'recharge'){
+    
+    M[1,1] = DF*(as.numeric(SASRp[5,5]))#Start in high state end in high state
+    M[1,2] = 0                          #Start in high state end in low state
+    M[2,1] = DF*(as.numeric(SASRp[7,5]))#Start in low state end in high state
+    M[2,2] = 0                          #Start in low state end in low state 
+    }
+
+    IdentityMatrix = matrix(c(1,0,0,1), nrow = 2, ncol = 2)
+     # Calculate inverse of identity minus M matrix 
+     InverseMatrix = solve(IdentityMatrix - M)
+    
+   # State value function is just inverse multiplied by b
+    StateValueFunction = InverseMatrix %*% b
+    # Returning value of state value function
+    return(t(StateValueFunction))
+   
+
+                 }
+##Add nice table of all results
+# Rows are different policies
+# Columns are states 1 and 2
+
+Policy1 = CalculatePolicyValueFunction(c('search','search'),SASRp, 0.9)
+
+Policy2 = CalculatePolicyValueFunction(c('search','wait'),SASRp, 0.9)
+
+Policy3 = CalculatePolicyValueFunction(c('search','recharge'),SASRp, 0.9)
+
+Policy4 = CalculatePolicyValueFunction(c('wait','search'),SASRp, 0.9)
+
+Policy5 = CalculatePolicyValueFunction(c('wait','wait'),SASRp, 0.9)
+
+Policy6 = CalculatePolicyValueFunction(c('wait','recharge'),SASRp, 0.9)
+Policies = matrix(c(Policy1,Policy2,Policy3,Policy4,Policy5,Policy6), nrow = 6, ncol = 2, byrow = TRUE)
+ colnames(Policies) = c("State 1","State 2")
+rownames(Policies) = c("Policy 1","Policy 2","Policy 3", "Policy 4", "Policy 5", "Policy 6")
+Policies = as.table(Policies)
+print(Policies)
+
+
+#Part C
+# The policy evaluation function takes initial state estimates, initial policy, the matrix from part a, discount factor and number of sweeps
+
+PolicyEvaluation = function(StartVF = c(InitialEst1, InitialEst2),policy = c(action1, action2), SASRp, DF, niter){
+VFEstimateNext = matrix(0, nrow = niter, ncol = 2)
+ # Loop over niter, for the first iteration use initial estimates
+# In subsequent iterations, use values from previous steps
+# Depedning on which policy is inputted, different code segment will run   
+for( i in 1:niter){
+if(policy[1] == 'search'){
+    if(i == 1){
+        #For state 1 action 1
+# Apply policy evaluation i.e. state transition probabilities *( reward + discount factor * initial estimate) repeated for all actions in that state
+VFEstimateNext[1,1] = 1 * (as.numeric(SASRp[1,5]) *(as.numeric(SASRp[1,4]) + DF * StartVF[1])) + 1 * (as.numeric(SASRp[2,5]) * (as.numeric(SASRp[2,4]) + DF * StartVF[2]))
+  }
+    if(i>1){
+        # Apply policy evaluation i.e. state transition probabilities *( reward + discount factor * previous estimate) repeated for all actions in that state
+        VFEstimateNext[i,1] = 1 * (as.numeric(SASRp[1,5]) *(as.numeric(SASRp[1,4]) + DF * VFEstimateNext[i-1,1])) + 1 * (as.numeric(SASRp[2,5]) * (as.numeric(SASRp[2,4]) + DF * VFEstimateNext[i-1,2]))
+        }
+       }
+    # For state 1 action 2
+# I won't repeat the comment, but procedure is same as for search action
+if(policy[1] == 'wait'){
+    if(i == 1){
+VFEstimateNext[1,1] = 1 * (as.numeric(SASRp[5,5]) *(as.numeric(SASRp[5,4]) + DF * StartVF[1]))
+       
+}
+    if(i>1){
+        VFEstimateNext[i,1] = 1 * (as.numeric(SASRp[5,5]) *(as.numeric(SASRp[5,4]) + DF * VFEstimateNext[i-1,1]))
+    }
+}
+    # For state 2 action 1
+if(policy[2] == 'search'){
+    if(i==1){
+VFEstimateNext[1,2] = 1 * (as.numeric(SASRp[3,5]) *(as.numeric(SASRp[3,4]) + DF * StartVF[1])) + 1 * (as.numeric(SASRp[4,5]) * (as.numeric(SASRp[4,4]) + DF * StartVF[2]))
+}
+    if(i>1){
+        VFEstimateNext[i,2] = (as.numeric(SASRp[3,5]) *(as.numeric(SASRp[3,4]) + DF * VFEstimateNext[i-1,1])) +  (as.numeric(SASRp[4,5]) * (as.numeric(SASRp[4,4]) + DF * VFEstimateNext[i-1,2]))
+        }
+    }
+ # For state 2 action 2
+if(policy[2] == 'wait'){
+    if(i==1){
+VFEstimateNext[1,2] = 1 * (as.numeric(SASRp[6,5]) *(as.numeric(SASRp[6,4]) + DF * StartVF[2])) 
+        }
+    if(i>1){
+        VFEstimateNext[i,2] = 1 * (as.numeric(SASRp[6,5]) *(as.numeric(SASRp[6,4]) + DF * VFEstimateNext[i-1,2])) 
+}
+    }
+# For state 2 action 3
+    if(policy[2] == 'recharge'){
+    if(i==1){
+VFEstimateNext[1,2] = 1 * (as.numeric(SASRp[7,5]) *(as.numeric(SASRp[7,4]) + DF * StartVF[1])) 
+        }
+    if(i>1){
+        VFEstimateNext[i,2] = 1 * (as.numeric(SASRp[7,5]) *(as.numeric(SASRp[7,4]) + DF * VFEstimateNext[i-1,1])) 
+}
+    }
+##StartVF = VFEstimateNext
+}
+
+return(VFEstimateNext)
+}
+    
+    PolicyEvaluation(c(3,2), c('search','search'),SASRp, 0.9,1)
+## PART D
+
+# Policy improvement function which takes initial function estimate, matrix from part a and a discount factor
+
+PolicyImprovement = function(VFEstim = c(estimate1, estimate2),SARSp, DF){
+# find state values for all state action combinations
+# return policy with highest state value function    
+QValueState1 = rep(0,2)
+QValueState2 = rep(0,3)
+PolicyEstimate = rep(0,2)
+## state1, action1
+#Q value function calculated through reward *(transition probabilities + discount factor * iniitial estimate, repeated for all of same action in that state    
+QValueState1[1] = as.numeric(SASRp[1,5])*(as.numeric(SASRp[1,4]) + DF * VFEstim[1]) + (as.numeric(SASRp[2,5])) * ((as.numeric(SASRp[2,4])) + DF * VFEstim[2])
+## state1, action2
+QValueState1[2] = (as.numeric(SASRp[5,5]))*(((as.numeric(SASRp[5,4]))) + DF * VFEstim[1])
+# Check which action gives best value an it then becomes best policy
+   if(QValueState1[1] >  QValueState1[2])
+       PolicyEstimate[1] = 'search'
+       else
+           PolicyEstimate[1] = 'wait'
+##state2 action1
+#Q value function calculated through reward *(transition probabilities + discount factor * iniitial estimate, repeated for all of same action in that state           
+QValueState2[1] = as.numeric(SASRp[3,5])*(as.numeric(SASRp[3,4]) + DF * VFEstim[1]) + (as.numeric(SASRp[4,5])) * ((as.numeric(SASRp[4,4]) + DF * VFEstim[2]))
+##state2 action2
+QValueState2[2] = (as.numeric(SASRp[6,5]))*(((as.numeric(SASRp[6,4]))) + DF * VFEstim[2])
+##state2 action3           
+QValueState2[3] = (as.numeric(SASRp[7,5]))*(((as.numeric(SASRp[7,4]))) + DF * VFEstim[1])
+# Check which action gives best value an it then becomes best policy
+           if(QValueState2[1] > ( QValueState2[2] && QValueState2[3]))
+       PolicyEstimate[2] = "search"
+       else if (QValueState2[2] > ( QValueState2[1] && QValueState2[3]))
+           PolicyEstimate[2] = 'wait'
+           else
+               PolicyEstimate[2] = 'recharge'
+               
+              
+           
+return(list(PolicyEstimate))
+
+}
+
+           ##PART E
+           # Apply GPI to find both new function value estimate and estimate of best policy
+           # All code here is formed through combination of parts c and d
+           OptimalValue = matrix(0,nrow = 20, ncol = 2)
+           OptimalPolicy = matrix(0, nrow = 20, ncol = 2)
+           #First apply ploicy evaluation then apply policy improvement and repeat the cycle for 20 times
+# Plug optimal value to find optimal policy
+# then plug new found optimal policy and current optimal value to find new optimal value etc...
+           for(i in 1:20){
+               if(i == 1){
+   OptimalValue[i,1] =  PolicyEvaluation(c(0,0), c('wait','wait'),SASRp, 0.9,10)[10,1]
+   OptimalValue[i,2] =  PolicyEvaluation(c(0,0), c('wait','wait'),SASRp, 0.9,10)[10,2]
+                   }
+               if(i > 1){
+   OptimalValue[i,1] =  PolicyEvaluation(c(OptimalValue[i-1,1],OptimalValue[i-1,2]), c(OptimalPolicy[i-1,1], OptimalPolicy[i-1,2]),SASRp, 0.9,10)[10,1]
+   OptimalValue[i,2] =  PolicyEvaluation(c(OptimalValue[i-1,1],OptimalValue[i-1,2]), c(OptimalPolicy[i-1,1], OptimalPolicy[i-1,2]),SASRp, 0.9,10)[10,2]
+                   }
+    if(i == 1){          
+     OptimalPolicy[i,1] = PolicyImprovement(c(OptimalValue[i,1],OptimalValue[i,2]),SASRp,0.9)[[1]][1]
+   OptimalPolicy[i,2] = PolicyImprovement(c(OptimalValue[i,1],OptimalValue[i,2]),SASRp,0.9)[[1]][2]   
+        }
+     if(i>1){
+   OptimalPolicy[i,1] = PolicyImprovement(c(OptimalValue[i,1],OptimalValue[i,2]),SASRp,0.9)[[1]][1]
+   OptimalPolicy[i,2] = PolicyImprovement(c(OptimalValue[i,1],OptimalValue[i,2]),SASRp,0.9)[[1]][2] 
+         }
+            
+               
+         }  
+           
+           print(OptimalPolicy[20,])
+           print(OptimalValue[20,])
+##PART F
+ ValueIteration = function(StartVF = c(estimate1,estimate2), SASRp, DF, niter){
+               FinalValueFunction = matrix( 0, nrow = niter, ncol = 2)
+               FinalPolicy = matrix(0, nrow = niter, ncol = 2)
+               #State1
+               #Try all actions and pick best
+               #Pick best action
+               for (i in 1:niter){
+                   if(i == 1){
+                   FinalValueFunction[1,1] = max(as.numeric(SASRp[1,5])*(as.numeric(SASRp[1,4]) + DF * StartVF[1]) +  
+                                                 as.numeric(SASRp[2,5])*(as.numeric(SASRp[2,4]) + DF * StartVF[2]),
+                                                 (as.numeric(SASRp[5,5])*(as.numeric(SASRp[5,4]) + DF * StartVF[1])))
+                                                  
+                                                
+                      
+                       }
+                   #Picking optimal policy
+                   if( i == 1){
+                   action1 = as.numeric(SASRp[1,5])*(as.numeric(SASRp[1,4]) + DF * StartVF[1]) +  
+                                                 as.numeric(SASRp[2,5])*(as.numeric(SASRp[2,4]) + DF * StartVF[2])
+                   action2 = as.numeric(SASRp[5,5])*(as.numeric(SASRp[5,4]) + DF * StartVF[1])
+                   if(action1> action2)
+                       FinalPolicy[1,1] = 'search'
+                       else
+                           FinalPolicy[1,1] = 'wait'
+                       }
+                       #Picking best action using previous i value
+                   if(i>1){
+                       FinalValueFunction[i,1] = max(as.numeric(SASRp[1,5])*(as.numeric(SASRp[1,4]) + DF * FinalValueFunction[i-1,1]) +  
+                                                 as.numeric(SASRp[2,5])*(as.numeric(SASRp[2,4]) + DF * FinalValueFunction[i-1,2]),
+                                                 (as.numeric(SASRp[5,5])*(as.numeric(SASRp[5,4]) + DF * FinalValueFunction[i-1,1])))
+                       }
+                       #Picking best policy using previous i value
+                       if(i > 1){
+                           action1 = as.numeric(SASRp[1,5])*(as.numeric(SASRp[1,4]) + DF * FinalValueFunction[i-1,1]) +  
+                                                 as.numeric(SASRp[2,5])*(as.numeric(SASRp[2,4]) + DF * FinalValueFunction[i-1,2])
+                           action2 = as.numeric(SASRp[5,5])*(as.numeric(SASRp[5,4]) + DF * FinalValueFunction[i-1,1])
+                           if(action1> action2)
+                       FinalPolicy[i,1] = 'search'
+                       else
+                           FinalPolicy[i,1] = 'wait'
+                           }
+                               # This is same as above just repeated for state 2
+                   if(i == 1){
+                   FinalValueFunction[1,2] = max(as.numeric(SASRp[3,5])*(as.numeric(SASRp[3,4]) + 
+                                                 DF * StartVF[1]) +  as.numeric(SASRp[4,5])*(as.numeric(SASRp[4,4]) + DF * StartVF[2]),
+                                                  
+                                                 (as.numeric(SASRp[6,5])*(as.numeric(SASRp[6,4]) +  DF * StartVF[2])),
+                                                
+                                                 (as.numeric(SASRp[7,5])*(as.numeric(SASRp[7,4]) + DF * StartVF[1])))
+                                                 
+                          }
+                               if(i == 1){
+                                   action1 = as.numeric(SASRp[3,5])*(as.numeric(SASRp[3,4]) + 
+                                                 DF * StartVF[1]) +  as.numeric(SASRp[4,5])*(as.numeric(SASRp[4,4]) +
+                                                 DF * StartVF[2])
+                                   action2 = as.numeric(SASRp[6,5])*(as.numeric(SASRp[6,4]) + 
+                                                 DF * StartVF[2])
+                                   action3 = as.numeric(SASRp[7,5])*(as.numeric(SASRp[7,4]) + DF * StartVF[1])
+                                   if(action1>(action2||action3))
+                                      FinalPolicy[1,2] = 'search'
+                                      else if (action2>(action1||action3))
+                                               FinalPolicy[1,2] = 'wait'
+                                               else
+                                                   FinalPolicy[1,2] = 'recharge'
+
+                                
+                                   }
+                   if(i > 1){
+                       
+                               FinalValueFunction[i,2] = max(as.numeric(SASRp[3,5])*(as.numeric(SASRp[3,4]) + 
+                                                 DF * FinalValueFunction[i-1,1]) +  as.numeric(SASRp[4,5])*(as.numeric(SASRp[4,4]) +
+                                                 DF * FinalValueFunction[i-1,2]), (as.numeric(SASRp[6,5])*(as.numeric(SASRp[6,4]) + 
+                                                 DF * FinalValueFunction[i-1,2])),(as.numeric(SASRp[7,5])*(as.numeric(SASRp[7,4]) + DF * FinalValueFunction[i-1,1])))                  
+                      
+                     
+                   }
+                    if(i>1){
+                        action1 = as.numeric(SASRp[3,5])*(as.numeric(SASRp[3,4]) + 
+                                                 DF * FinalValueFunction[i-1,1]) +  as.numeric(SASRp[4,5])*(as.numeric(SASRp[4,4]) +
+                                                 DF * FinalValueFunction[i-1,2])
+                        action2 = as.numeric(SASRp[6,5])*(as.numeric(SASRp[6,4]) + 
+                                                 DF * FinalValueFunction[i-1,2])
+                       action3 =  as.numeric(SASRp[7,5])*(as.numeric(SASRp[7,4]) + DF * FinalValueFunction[i-1,1])    
+                                                           if(action1>(action2||action3))
+                                      FinalPolicy[i,2] = 'search'
+                                      else if (action2>(action1||action3))
+                                               FinalPolicy[i,2] = 'wait'
+                                               else
+                                                   FinalPolicy[i,2] = 'recharge'
+                                                                                                            
+                        }
+               
+               #Best action in each state will make up final policy
+               
+               }
+                        return(list(FinalValueFunction,FinalPolicy))
+               }
+          # ValueIteration(c(0,0), SASRp, 0.9, 500)
+           #ValueIteration(c(0,0), SASRp, 0.9, 25)
+           #ValueIteration(c(0,0), SASRp, 0.9, 5)
+           ValueIteration(c(0,0), SASRp, 0.9, 2) 
