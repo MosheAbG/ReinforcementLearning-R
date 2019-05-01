@@ -1,0 +1,233 @@
+# QUESTION 1 
+kArmedTestbed = function(k, nplays, eps, seed){
+set.seed(seed)
+#vector with k expected means
+muvec = rnorm(k, 0, 1)
+# simulating nplays numbers distributed with mean of muvec and std of 1
+allPossibleRewards = sapply(muvec, function(x)rnorm(nplays, x, 1))
+## binding the expected means to a thousand random varialbes normally
+## distributed with the means found earlier
+allRewardvec = rbind(muvec,allPossibleRewards)
+# Initialize vectors to contain action and rewards at each stage
+Rewardvec = rep(0,nplays)
+Actionvec = rep(0,nplays)
+# A matrix to hold the average value of all runs
+Qmat = matrix(0, nrow = nplays + 1, ncol = k)
+# A random number between 0 and 1 to see if we are greedy 
+probExploit = runif(nplays)
+
+## Looping over all 1000 plays in each run
+for(i in 1:nplays){
+# When greedy a random action is chosen
+currentAction = sample(k,1,replace = TRUE)
+#Update the action vector based on policy chosen
+if(probExploit[i]<eps){
+Actionvec[i] = currentAction
+}
+else
+{
+Actionvec[i] = which.max(Qmat[i,])
+}
+
+# Update reward vector based on chosen action
+## it's i + 1 because the first row is the actual mean, so for first draw it would be problematic
+Rewardvec[i] = allRewardvec[i+1,Actionvec[i]]
+# non chosen actions keep old reward 
+Qmat[i+1, -Actionvec[i]] = Qmat[i, -Actionvec[i]]
+pastRewards = Rewardvec[1:i]
+PastActions = Actionvec[1:i]
+#chosen action has updated mean
+Qmat[i+1,Actionvec[i]] = mean(pastRewards[PastActions==Actionvec[i]])
+
+}
+resultVectors = list(muvec, Rewardvec, Actionvec)
+return(resultVectors)
+}
+
+
+
+
+
+### PART B
+
+#Calculates Average reward at each time step with e = 0.1
+## Simulates over 2,000 runs
+## This process will be repeated 3 times for different value of epsillons 
+## A matrix to hold the 1000 rewards for each run
+reward = matrix(0, nrow = 2000, ncol = 1000)
+## Vector is named with number at the end, in the end they will be binded together
+## To create the final Average reward at each time step
+AvgRewardAllepsi1 = matrix(0, nrow = 1, ncol = 1000)
+for(j in 1:2000){
+for(h in 1:1000){
+## The index after the function refers to the second matrix being 
+## outputed by kArmTestbedFunction
+ reward[j,h] = kArmedTestbed(10,1000,0.1,j)[[2]][h]
+}
+}
+## Sum across the columns to get average reward value if each column
+AvgRewardAllepsi1 = apply(reward,2,mean)
+
+
+#Calculates Average reward at each time step with e = 0.01
+AvgRewardAllepsi2 = matrix(0, nrow = 1, ncol = 1000)
+for(j in 1:2000){
+for(h in 1:1000){
+ reward[j,h] = kArmedTestbed(10,1000,0.01,j)[[2]][h]
+}
+}
+AvgRewardAllepsi2 = apply(reward,2,mean)
+
+
+#Calculates Average reward at each time step with e = 0
+AvgRewardAllepsi3 = matrix(0, nrow = 1, ncol = 1000)
+for(j in 1:2000){
+for(h in 1:1000){
+ reward[j,h] = kArmedTestbed(10,1000,0,j)[[2]][h]
+}
+}
+AvgRewardAllepsi3 = apply(reward,2,mean)
+
+
+#Combining 1 & 2
+AvgRewardAllepsi4 = matrix(0,nrow = 2, ncol = 1000)
+AvgRewardAllepsi4 = rbind(AvgRewardAllepsi1,AvgRewardAllepsi2)
+
+#Combining all together
+AvgRewardAllepsi = matrix(0,nrow = 3, ncol = 1000)
+AvgRewardAllepsi = rbind(AvgRewardAllepsi4,AvgRewardAllepsi3)
+
+
+## This process will be repeated 3 time for different value of epsillons 
+
+# selects the arm in each reward with highest expected reward for e = 0.1
+highestReward1 = rep(0,2000)
+for(j in 1:2000){
+for(h in 1:1000){
+ highestReward1[j] = which.max(kArmedTestbed(10,1000,0.1,j)[[1]])
+}
+}
+
+# selects the arm in each reward with highest expected reward for e = 0.01
+highestReward2 = rep(0,2000)
+for(j in 1:2000){
+for(h in 1:1000){
+ highestReward2[j] = which.max(kArmedTestbed(10,1000,0.01,j)[[1]])
+}
+}
+
+# selects the arm in each reward with highest expected reward for e = 0
+highestReward3 = rep(0,2000)
+for(j in 1:2000){
+for(h in 1:1000){
+ highestReward3[j] = which.max(kArmedTestbed(10,1000,0,j)[[1]])
+}
+}
+
+
+# The action selected at each time step for e = 0.1
+action1 = matrix(0, nrow = 2000, ncol = 1000)
+for(j in 1:2000){
+for(h in 1:1000){
+ action1[j,h] = kArmedTestbed(10,1000,0.1,j)[[3]][h]
+}
+}
+
+
+#Percentage of time optimal action for e = 0.1
+sum1 = 0
+PercentOptimalAllepsi1 = matrix(0, nrow = 1, ncol = 1000)
+for(h in 1:1000){
+for(j in 1:2000){
+if(action1[j,h] == highestReward1[j]){
+sum1 = sum1 + 1
+}
+PercentOptimalAllepsi1[1,h] = sum1/j
+}
+## Re-initialize sum to 0 after each run
+sum1 = 0
+}
+
+# The action selected at each time step for e = 0.01
+action2 = matrix(0, nrow = 2000, ncol = 1000)
+for(j in 1:2000){
+for(h in 1:1000){
+ action2[j,h] = kArmedTestbed(10,1000,0.01,j)[[3]][h]
+}
+}
+
+
+
+#Percentage of time optimal action for e = 0.01
+sum2 = 0
+PercentOptimalAllepsi2 = matrix(0, nrow = 1, ncol = 1000)
+for(h in 1:1000){
+for(j in 1:2000){
+if(action2[j,h] == highestReward2[j]){
+sum2 = sum2 + 1
+}
+PercentOptimalAllepsi2[1,h] = sum2/j
+}
+sum2 = 0
+}
+
+# The action selected at each time step for e = 0
+action3 = matrix(0, nrow = 2000, ncol = 1000)
+for(j in 1:2000){
+for(h in 1:1000){
+ action3[j,h] = kArmedTestbed(10,1000,0,j)[[3]][h]
+}
+}
+
+
+#Percentage of time optimal action for e = 0
+sum3 = 0
+PercentOptimalAllepsi3 = matrix(0, nrow = 1, ncol = 1000)
+for(h in 1:1000){
+for(j in 1:2000){
+if(action3[j,h] == highestReward3[j]){
+sum3 = sum3 + 1
+}
+PercentOptimalAllepsi3[1,h] = sum3/j
+}
+sum3 = 0
+}
+
+#Combining 1 & 2
+PercentOptimalAllepsi4 = matrix(0,nrow = 2, ncol = 1000)
+PercentOptimalAllepsi4 = rbind(PercentOptimalAllepsi1, PercentOptimalAllepsi2)
+
+#final result, after binding all together 
+PercentOptimalAllepsi = matrix(0, nrow = 3, ncol = 1000)
+PercentOptimalAllepsi = rbind(PercentOptimalAllepsi4, PercentOptimalAllepsi3)
+
+
+##PART C
+## Creating the graphs
+x = 1:1000
+plot(x, AvgRewardAllepsi[1,x],
+main="Rewards of different e greedy strategies over time",
+ylab="Average Reward",
+xlab ="plays",
+type="l",
+col="blue")
+lines(x,AvgRewardAllepsi[2,x], col="red")
+lines(x,AvgRewardAllepsi[3,x], col="dark green")
+legend("topleft",
+c("e = 0.1","e = 0.01", "e = 0"),
+fill=c("blue","red", "dark green")
+)
+
+x = 1:1000
+plot(x, PercentOptimalAllepsi[1,x],
+main="Optimal Percentages of different e greedy policies over time",
+ylab="percent optimal",
+xlab ="plays",
+type="l",
+col="blue")
+lines(x,PercentOptimalAllepsi[2,x], col="red")
+lines(x,PercentOptimalAllepsi[3,x], col="dark green")
+legend("topleft",
+c("e = 0.1","e = 0.01", "e = 0"),
+fill=c("blue","red", "dark green")
+)
