@@ -1,0 +1,84 @@
+#Question 3
+set.seed(29)
+## Create the three arms with their reepective means
+## And create 1000 normally distributed random variables from them
+Arm1Reward = rnorm(1000,-0.5,1)
+Arm2Reward = rnorm(1000,0,1)
+Arm3Reward = rnorm(1000,0.5,1)
+# Initialize our action and reward vectors
+Actionvec = rep(0,1000)
+Rewardvec = rep(0,1000)
+#constant
+alpha = 0.02
+#Initialize the Reward and probability matrices
+Hmat = matrix(0, nrow = 1001, ncol = 3)
+Pimat = matrix(0, nrow = 1001, ncol = 3)
+# Initialize first row of rewards to zeros since no action selected yet
+Hmat[1,1] = 0
+Hmat[1,2] = 0
+Hmat[1,3] = 0
+# Initialize first row of probabilty to 1/3 since they each have same chance of being selected
+Pimat[1,1] = 1/3
+Pimat[1,2] = 1/3
+Pimat[1,3] = 1/3
+# Arbitrairly chose first action since no estimates yet
+Actionvec[1] = 1
+for(i in 1:1000){
+   # Recursive formula to calculate probabilities based on Softmax
+  eValues = exp(Hmat[i,])
+  Pimat[i,1] = exp(Hmat[i,1])/(sum(eValues))
+  Pimat[i,2] = exp(Hmat[i,2])/(sum(eValues))
+  Pimat[i,3] = exp(Hmat[i,3])/(sum(eValues))
+# Choose action based on each action's respective probabilities
+ Actionvec[(i+1)] = sample(3, 1, replace = TRUE, prob = c(Pimat[i,1],Pimat[i,2],Pimat[i,3]))
+# If action 1 was selcted
+  if(Actionvec[i] == 1){
+# Get Reward from normal random variables defined above
+     Rewardvec[i] = Arm1Reward[i] 
+# Calculate mean term
+    meanArmValue = mean(Rewardvec)
+# Action selected has different recursive formula than action not selected
+# update the rewards in each future row for all 3 columns of Hmat matrix
+    Hmat[(i+1),Actionvec[i]] = Hmat[i,Actionvec[i]] + alpha*(Arm1Reward[i] - meanArmValue)*(1 - Pimat[i,Actionvec[i]])
+    Hmat[(i+1),2] = Hmat[i,2] + alpha*(Arm1Reward[i] - meanArmValue)*(-Pimat[i,2])
+    Hmat[(i+1),3] = Hmat[i,3] + alpha*(Arm1Reward[i] - meanArmValue)*(-Pimat[i,3])
+    
+  } else if(Actionvec[i] == 2){ # If action 2 is selected then follow same process as above
+    Rewardvec[i] = Arm2Reward[i] 
+    meanArmValue = mean(Rewardvec)
+    Hmat[(i+1),Actionvec[i]] = Hmat[i,Actionvec[i]] + alpha*(Arm2Reward[i] - meanArmValue)*(1 - Pimat[i,Actionvec[i]])
+    Hmat[(i+1),1] = Hmat[i,1] + alpha*(Arm2Reward[i] - meanArmValue)*(-Pimat[i,1])
+    Hmat[(i+1),3] = Hmat[i,3] + alpha*(Arm2Reward[i] - meanArmValue)*(-Pimat[i,3])
+    
+  } else if(Actionvec[i] == 3){ # If action 3 is selected then follow same process as above
+     Rewardvec[i] = Arm3Reward[i] 
+    meanArmValue = mean(Rewardvec)
+    Hmat[(i+1),Actionvec[i]] = Hmat[i,Actionvec[i]] + alpha*(Arm3Reward[i] - meanArmValue)*(1 - Pimat[i,Actionvec[i]]) 
+    Hmat[(i+1),1] = Hmat[i,1] + alpha*(Arm3Reward[i] - meanArmValue)*(-Pimat[i,1])
+    Hmat[(i+1),2] = Hmat[i,2] + alpha*(Arm3Reward[i] - meanArmValue)*(-Pimat[i,2])
+      
+  }
+
+   
+  
+    
+      
+}
+   
+##PART B
+#Grpah the probabilities over time
+x = 1:1000
+
+plot(x, Pimat[x,1],
+main="Simulated Action Preferences over time",
+ylab="Simulated Action Preference",
+xlab ="plays",
+type="l",
+col="dark green",
+ylim=c(0,1))
+lines(x,Pimat[x,2], col="red")
+lines(x,Pimat[x,3], col="blue")
+legend("topleft",
+c("Pimat 1","Pimat 2", "Pimat 3"),
+fill=c("dark green","red", "blue")
+)
