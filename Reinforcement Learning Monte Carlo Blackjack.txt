@@ -1,0 +1,326 @@
+## Question3
+
+SimulateBlackJackEpsiodeStick20 = function(theseed){
+set.seed(theseed)
+# Initial sum of Player's hand
+SumOfHand = 0
+ 
+# A vector of possible rewards to be implemented later    
+HandReward = c(-1 , 0 , 1) 
+# Initially All aces count for 11, later values may be changed   
+Ace = 11
+ # Player gets 2 cards randomly   
+ PlayerCards = rep(0,2)   
+PlayerCards[1] = sample(c(2:10,10,10,10,Ace),1, replace = TRUE)
+ PlayerCards[2] = sample(c(2:10,10,10,10,Ace),1, replace = TRUE)  
+# Defining 2 new variables
+# One to check sum of player's hand after each step
+#And one to check if a player has a usable ace   
+    IncrimentalSumOfHand = rep(0, length(PlayerCards))
+    PlayerUsableAce = rep(0,length(PlayerCards))         
+    
+   # Dealer gets 2 cards randomly  
+   DealerCards = rep(0,2)  
+    SumOfDealerHand = 0
+DealerCards[1] = sample(c(2:10,10,10,10,Ace),1, replace = TRUE)
+ DealerCards[2] = sample(c(2:10,10,10,10,Ace),1, replace = TRUE)  
+  # Defining 2 new variables, same as for player
+    IncrimentalSumOfDealerHand = rep(0, length(DealerCards))
+    DealerUsableAce = rep(0,length(DealerCards)) 
+    
+    # Initially sum of hand is just sum of 2 cards
+    SumOfDealerHand = sum(DealerCards)
+#Player part will come later
+# If both cards are aces, then second ace is worth one
+#Sum of hand becomes 12 and dealer has one usable ace
+#Although I don't think usable aces, matter for the dealer
+#I orignially thought they did, so I left it in
+    if((DealerCards[1] == Ace) && (DealerCards[2] == Ace)){
+        DealerCards[2] = 1
+        SumOfDealerHand = 12
+        DealerUsableAce[1] = 1
+        DealerUsableAce[2] = 1
+        
+        }
+  
+   # Setting Usable ace variable if ace is worth 11
+  if(DealerCards[1] == Ace){
+      DealerUsableAce[1] = 1
+      DealerUsableAce[2] = 1
+      }
+
+    if((DealerCards[1]!= Ace) && DealerCards[2] == Ace){
+        DealerUsableAce[1] = 0
+        DealerUsableAce[2] = 1
+        }
+# Getting sum of hand after each additional card
+        IncrimentalSumOfDealerHand[1] = DealerCards[1]
+        IncrimentalSumOfDealerHand[2] = DealerCards[1] + DealerCards[2]
+   
+ #Switch back to player
+#Initial sum of first 2 cards   
+    SumOfHand = sum(PlayerCards)
+# Setting Usable Ace variable to 1 if ace worth 11
+# If both are aces still set to one and second ace becomes 1 so sum less than 22
+    if((PlayerCards[1] == Ace) && (PlayerCards[2] == Ace)){
+        PlayerCards[2] = 1
+        SumOfHand = 12
+        PlayerUsableAce[1] = 1
+        PlayerUsableAce[2] = 1
+        
+        }
+  
+    #If first card is ace,then initialize 1 usable ace
+  if(PlayerCards[1] == Ace ){
+      PlayerUsableAce[1] = 1
+      PlayerUsableAce[2] = 1
+      }
+    if((PlayerCards[1]!= Ace) && PlayerCards[2] == Ace){
+        PlayerUsableAce[1] = 0
+        PlayerUsableAce[2] = 1
+        }
+        IncrimentalSumOfHand[1] = PlayerCards[1]
+        IncrimentalSumOfHand[2] = PlayerCards[1] + PlayerCards[2]
+   # Main part of code
+# Since Player hits for anything under 20
+#He will draw cards and either reach 20/21 or go bust
+          while(SumOfHand < 20){
+               DrawCard = sample(c(2:10,10,10,10,Ace), 1 , replace = TRUE)
+              NewHand = append(PlayerCards, DrawCard)# Add drawn card to hand
+              PlayerCards = NewHand
+              SumOfHand = sum(PlayerCards)# New sum of hand is sum of all cards in hand
+#If drawn card is ace, and already have ace worth 11, then ace becomes 1 and still 1 usable ace
+            if((DrawCard == Ace) && (PlayerUsableAce[length(PlayerCards)- 1] == 1)){
+             
+                 #DrawCard = 1
+               
+                PlayerUsableAce[length(PlayerCards)] = 1
+                 }
+              
+             
+ # If drawn card is ace, but not usable ace yet, then action will depend if new sum is greater than 21
+#If sum less than 21, then ace is usable, otherwise not   
+#Changing value of ace will be done later on           
+              if((DrawCard == Ace) && (PlayerUsableAce[length(PlayerCards) - 1] == 0)){
+                  if(SumOfHand < 22){
+                 PlayerUsableAce[length(PlayerCards)] = 1
+                      }
+                  if(SumOfHand > 21){
+                 PlayerUsableAce[length(PlayerCards)] = 0
+                      }
+                 }
+              
+ #If drawn card not an ace, then usable ace status will depend on previous draws             
+               if((DrawCard!= Ace) && PlayerUsableAce[length(PlayerCards)-1] == 1){
+                  if(SumOfHand < 22){
+                      
+                 PlayerUsableAce[length(PlayerCards)] = 1
+                      }
+                  if(SumOfHand > 21){
+                 PlayerUsableAce[length(PlayerCards)] = 0
+                      }
+                  }
+              
+              if((DrawCard!= Ace) && PlayerUsableAce[length(PlayerCards)-1] == 0){
+                  #print(SumOfHand)
+                  PlayerUsableAce[length(PlayerCards)] = 0
+                  }
+              
+              
+            #New incrimental sum is sum of old cards plus new card  
+              NewSum = append(IncrimentalSumOfHand[length(PlayerCards) - 1 ], DrawCard)
+              
+              IncrimentalSumOfHand[length(PlayerCards)] = sum(NewSum)
+            
+              
+     
+            
+ # If sum of hand greater than 21, change last recieved ace from 11 to 1
+# Update other variables accordingly       
+    if(SumOfHand > 21){ 
+        for( i in length(PlayerCards):1){
+            if(PlayerCards[i] == 11){
+                
+              PlayerCards[i] = 1
+              for(j in i:1){# This loop checks if any previous usable aces and updates the variable accordingly
+                    if(PlayerCards[j] == 11){
+                                           
+                PlayerUsableAce[length(PlayerCards)] = PlayerUsableAce[length(PlayerCards) - 1]
+                        break
+                        } else{
+                         PlayerUsableAce[length(PlayerCards)] = 0
+                        }
+                  
+                    }
+                
+#Incriment total sum and incriment incrimental sum
+                SumOfHand = sum(PlayerCards)
+               IncrimentalSumOfHand[length(PlayerCards)] = SumOfHand
+                break
+                }
+            
+
+
+ }
+}
+              }
+    
+    
+    ##Dealer Now
+#Dealer only plays if the player has 20 or 21 and if player doesn't have a natural
+#If player has over 21 he loses and if he has a natural he wins
+#Assuming dealer also doesn't have natural
+    if((SumOfHand<22)){
+        if(!(SumOfHand == 21 && length(PlayerCards) == 2 )){
+        
+  #Dealer hits for anything under 17, until he reaches a number between 17 and 21 or goes busts
+# The following code will be sparsely commented as it's very similar to above    
+          while(SumOfDealerHand < 17){
+               DrawCard = sample(c(2:10,10,10,10,Ace), 1 , replace = TRUE)
+              NewHand = append(DealerCards, DrawCard)
+              DealerCards = NewHand
+              SumOfDealerHand = sum(DealerCards)
+  # Different scenarios regarding usable aces and updating them accordingly 
+# Although I thought dealer usable aces were needed originally
+# I later realized they weren't needed, but to not mess up the code, I left them in      
+            if((DrawCard == Ace) && (DealerUsableAce[length(DealerCards)- 1] == 1)){
+             
+                 DrawCard = 1
+               
+                DealerUsableAce[length(DealerCards)] = 1
+                 }
+               
+             
+              
+              if((DrawCard == Ace) && (DealerUsableAce[length(DealerCards) - 1] == 0)){
+                  if(SumOfDealerHand < 22){
+                 DealerUsableAce[length(DealerCards)] = 1
+                      }
+                  if(SumOfDealerHand > 21){
+                 DealerUsableAce[length(DealerCards)] = 0
+                      }
+                 }
+         
+              
+             if((DrawCard!= Ace) && DealerUsableAce[length(DealerCards)-1] == 1){
+                if(SumOfDealerHand < 22){
+                 DealerUsableAce[length(DealerCards)] = 1
+                     }
+                  if(SumOfDealerHand > 21){
+                 DealerUsableAce[length(DealerCards)] = 0
+                      }
+                  }
+              
+              if((DrawCard!= Ace) && DealerUsableAce[length(DealerCards)-1] == 0){
+                  DealerUsableAce[length(DealerCards)] = 0
+                  }
+              
+              
+              
+              NewSum = append(IncrimentalSumOfDealerHand[length(DealerCards) - 1 ], DrawCard)
+              
+              IncrimentalSumOfDealerHand[length(DealerCards)] = sum(NewSum)
+            
+              
+              
+              
+    # If dealer hand greater than 21 and ace(s) are 11, then change ace to 1
+# Updater dealer usable ace accordingly  
+    if(SumOfDealerHand > 21){ 
+        for( i in length(DealerCards):1){
+            if(DealerCards[i] == 11){
+              DealerCards[i] = 1
+                for(j in 1:i){
+                    if(DealerCards[j] == 11){
+                        
+                DealerUsableAce[length(DealerCards)] = DealerUsableAce[length(DealerCards) - 1]
+                        } else{
+                         DealerUsableAce[length(DealerCards)] = 0
+                        }
+                    }
+                SumOfDealerHand = sum(DealerCards)
+               IncrimentalSumOfDealerHand[length(DealerCards)] = SumOfDealerHand
+                break
+                }
+            
+
+
+ }
+}
+              }
+        }
+        }
+    # Different Reward scenarios depending on both player and dealer sum
+# If player busts, he loses
+ if(SumOfHand>21){
+     Reward = HandReward[1]
+     }
+# If dealer busts, he losses
+    else if(SumOfDealerHand > 21){
+        Reward = HandReward[3]
+        }
+# If both have naturals then tie
+    else if((SumOfHand == 21 && length(PlayerCards) == 2) && (SumOfDealerHand == 21 && length(DealerCards) == 2)){
+        Reward = HandReward[2]
+        }
+#If player has natural and dealer doesn't player wins
+   else if((SumOfHand == 21 && length(PlayerCards) == 2) && (!(SumOfDealerHand == 21 && length(DealerCards) == 2 ))){
+        Reward = HandReward[3]
+        }
+#If dealer has natural and player doesn't then dealer wins
+   else if((SumOfDealerHand == 21 && length(DealerCards) == 2) && (!(SumOfHand == 21 && length(PlayerCards) == 2 ))){
+        Reward = HandReward[1]
+        }
+# If both players have same sum, then it's a tie
+    else if((SumOfHand == SumOfDealerHand) && SumOfHand<22){
+        Reward = HandReward[2]
+        }
+# If player has better hand than dealer then player wins
+    else if(SumOfHand<22 && (SumOfHand>SumOfDealerHand)){
+        Reward = HandReward[3]
+        }
+   else if((SumOfHand<22 && SumOfDealerHand<22) && (SumOfHand<SumOfDealerHand)){
+        Reward = HandReward[1]
+        }
+    
+    
+ # Returning the 6 required variables   
+return(list(Reward,PlayerCards,IncrimentalSumOfHand, PlayerUsableAce,DealerCards, IncrimentalSumOfDealerHand))
+   
+}
+      ## PART B Monte Carlo Methods  
+    Nsamplebystate = array(0,dim = c(10,10,2)) # Array for number of times each state occurs
+    ValueFunctionEstim = array(0,dim = c(10,10,2)) # Array for value in each state, based on previous values for same state
+for( i in 1:500000){
+# Using the actual function in the equations is very tedious, so I gave them shorter and better names
+PlayerCards = SimulateBlackJackEpsiodeStick20(i)[[2]] # Cards in the player's hand
+ PlayerCurrentSum = SimulateBlackJackEpsiodeStick20(i)[[3]] # Player's sum of all current cards
+    DealerCard1 = SimulateBlackJackEpsiodeStick20(i)[[6]][1] # Value of dealer's first card, anything between 2 and 11
+    PlayerUsableAce = SimulateBlackJackEpsiodeStick20(i)[[4]] # Player's usable aces based on value of current cards
+    PlayerReward = SimulateBlackJackEpsiodeStick20(i)[[1]] # The reward based off who wins 
+       for(j in 1:length(PlayerCards)){ # loop over total of each card in hand incrimentally
+            if(PlayerCurrentSum[j]>11 && PlayerCurrentSum[j]<22){ # Only care about states where player sum is between 12 - 21
+#Apply Monte Carlo methods from assignment instructions 
+ValueFunctionEstim[(DealerCard1 - 1), (PlayerCurrentSum[j] -11), PlayerUsableAce[j] + 1] = ValueFunctionEstim[DealerCard1 - 1, PlayerCurrentSum[j] -11, PlayerUsableAce[j] + 1] + 1/( Nsamplebystate[DealerCard1 - 1, PlayerCurrentSum[j] -11, PlayerUsableAce[j] + 1] + 1) *(PlayerReward -  ValueFunctionEstim[DealerCard1 - 1, PlayerCurrentSum[j] -11, PlayerUsableAce[j] + 1])  
+                
+ Nsamplebystate[DealerCard1 - 1, PlayerCurrentSum[j] -11, PlayerUsableAce[j] + 1] = Nsamplebystate[DealerCard1 - 1, PlayerCurrentSum[j] -11, PlayerUsableAce[j] + 1] + 1
+}
+    }
+    }
+       print(Nsamplebystate)
+        print(ValueFunctionEstim)
+
+
+
+##Part C Graphing
+gridPlayerTotal = 12:21
+gridDealerTotal = 2:11
+M <- mesh(gridPlayerTotal, gridDealerTotal)
+surf3D(x = M$x, y = M$y, z = t(ValueFunctionEstim[, ,1]),
+xlab = "Player Sum", bty = "b2",  ylab = "Dealer Showing", border = "black", cex.lab = 1, theta = 300 )
+
+gridPlayerTotal = 12:21
+gridDealerTotal = 2:11
+M <- mesh(gridPlayerTotal, gridDealerTotal)
+surf3D(x = M$x, y = M$y, z = t(ValueFunctionEstim[, ,2]),
+xlab = "Player Sum", bty = "b2",  ylab = "Dealer Showing", border = "black", cex.lab = 1, theta = 300 )
