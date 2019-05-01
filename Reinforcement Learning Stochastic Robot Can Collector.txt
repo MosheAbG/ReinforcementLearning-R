@@ -1,0 +1,439 @@
+### QUESTION 1
+##PART A
+#Just input values of matrix
+SASRp = matrix(c('high','high', 'low', 'low', 'high', 'low', 'high', 'low',
+'search', 'search', 'search', 'search', 'wait', 'wait', 'recharge', 'recharge',
+'high', 'low', 'high', 'low', 'high', 'low', 'high', 'high',
+2, 2, -3, 2, 1, 1, 0, 0,
+0.6, 0.4, 0.2, 0.8, 1, 1, 1, 1 ),nrow = 8, ncol = 5)
+
+
+CalculatePolicyStateValueFunction = function(Policy = matrix(c(a1s1,a1s2,a2s1,a2s2,a3s1,a3s2)),SASRp, DF){
+    b = rep(0,2) # create a vector, b vector from equation, 2 entries, 1 for each state 
+   #Depending on the action selected in each state it will generate different values of b
+# b is calculated using the reward multiplied by the state value probabilities
+# This done for all of the same action in each state, so that probabilities will sum to 1 
+b[1] = (as.numeric(SASRp[1,4]) * as.numeric(SASRp[1,5]) + as.numeric(SASRp[2,4]) * as.numeric(SASRp[2,5])) *Policy[1,1] +
+       ( as.numeric(SASRp[5,4]) * as.numeric(SASRp[5,5])) * Policy[1,2] + ( as.numeric(SASRp[7,4]) * as.numeric(SASRp[7,5])) * Policy[1,3]
+    
+b[2] = (as.numeric(SASRp[3,4]) * as.numeric(SASRp[3,5]) + as.numeric(SASRp[4,4]) * as.numeric(SASRp[4,5])) * Policy[2,1] +
+     (as.numeric(SASRp[6,4]) * as.numeric(SASRp[6,5])) * Policy[2,2] +  (as.numeric(SASRp[8,4]) * as.numeric(SASRp[8,5])) * Policy[2,3]
+# After calculating b, now calculate M which is a 2x2 matrix
+# with all 4 state choices
+# It depends on both action selected and is calculaed as discount factor multiplied by transisiton state probabilities
+# States which cannot possibly happen will receive a value of 0
+# Do it 6 times for all 6 policies
+    M = matrix(0, nrow = 2, ncol = 2)
+    M[1,1] = DF *(as.numeric(SASRp[1,5]) * Policy[1,1] + as.numeric(SASRp[5,5]) * Policy[1,2] + as.numeric(SASRp[7,5]) * Policy[1,3])
+    M[1,2] = DF *(as.numeric(SASRp[2,5]) * Policy[1,1])
+    M[2,1] = DF *(as.numeric(SASRp[3,5]) * Policy[2,1] + as.numeric(SASRp[8,5]) * Policy[2,3])
+    M[2,2] = DF *(as.numeric(SASRp[4,5]) * Policy[2,1] + as.numeric(SASRp[6,5]) * Policy[2,2] )
+    
+
+    IdentityMatrix = matrix(c(1,0,0,1), nrow = 2, ncol = 2)
+     # Calculate inverse of identity minus M matrix 
+     InverseMatrix = solve(IdentityMatrix - M)
+    
+    
+   # State value function is just inverse multiplied by b
+    StateValueFunction = InverseMatrix %*% b
+    # Returning value of state value function
+    
+    return(t(StateValueFunction))
+    }
+# Get values for state 1 and 2
+Vpi1 = CalculatePolicyStateValueFunction(matrix(c(0.7,0.1,0.2,0.7,0.1,0.2), nrow = 2, ncol = 3),SASRp,0.9)[1,1]
+Vpi2 = CalculatePolicyStateValueFunction(matrix(c(0.7,0.1,0.2,0.7,0.1,0.2), nrow = 2, ncol = 3),SASRp,0.9)[1,2]
+
+
+CalculatePolicyActionValueFunction = function(Policy = matrix(c(a1s1,a1s2,a2s1,a2s2,a3s1,a3s2)),SASRp, DF){
+    PolicyAVF = matrix(0, nrow = 2, ncol = 3)
+    # Calculate the qpi function etimate with repective transition probabilites, future states and rewards
+    PolicyAVF[1,1] = as.numeric(SASRp[1,5])*(as.numeric(SASRp[1,4]) + DF *Vpi1) + as.numeric(SASRp[2,5])*(as.numeric(SASRp[2,4]) + DF *Vpi2)
+    PolicyAVF[1,2] = as.numeric(SASRp[5,5])*(as.numeric(SASRp[5,4]) + DF *Vpi1)
+    PolicyAVF[1,3] = as.numeric(SASRp[7,5])*(as.numeric(SASRp[7,4]) + DF *Vpi1)
+    PolicyAVF[2,1] = as.numeric(SASRp[3,5])*(as.numeric(SASRp[3,4]) + DF *Vpi1) + as.numeric(SASRp[4,5])*(as.numeric(SASRp[4,4]) + DF *Vpi2)
+    PolicyAVF[2,2] = as.numeric(SASRp[6,5])*(as.numeric(SASRp[6,4]) + DF *Vpi2)
+    PolicyAVF[2,3] = as.numeric(SASRp[8,5])*(as.numeric(SASRp[8,4]) + DF *Vpi1)
+    return(PolicyAVF)
+    
+    }
+CalculatePolicyActionValueFunction(matrix(c(0.7,0.1,0.2,0.7,0.1,0.2), nrow = 2, ncol = 3),SASRp,0.9)
+CalculatePolicyActionValueFunction(matrix(c(1,0,0,0,0,1), nrow = 2, ncol = 3),SASRp,0.9)
+##PART B
+SimulateEpisodeCanRecycler = function(Policy = matrix(c(a1s1,a1s2,a2s1,a2s2,a3s1,a3s2)), SASRp, Eplength, initstate,theseed){
+    set.seed(theseed)
+    #Matrix with episode outcomes with 3 rows
+    EpisodeOutcomes <- matrix(0,nrow=3, ncol= Eplength) 
+
+StateDecider <- runif(Eplength,0,1)# used to select state
+ActionDecider <- runif(Eplength,0,1) # used to select action
+RewardDecider <- runif(Eplength,0,1) # used to select reward
+   print(StateDecider[1])
+    print(ActionDecider[1])
+EpisodeOutcomes[1,1]=initstate 
+    #Given initial State need to determine initial action 
+if(initstate == 1) #State High
+    if(ActionDecider[1]<=Policy[1,1]){
+        EpisodeOutcomes[2,1] = 1
+        EpisodeOutcomes[3,1] = 2
+        }
+        else if(ActionDecider[1]<=(Policy[1,1] + Policy[1,2])){
+            EpisodeOutcomes[2,1] = 2
+            EpisodeOutcomes[3,1] = 1
+            } else {
+            EpisodeOutcomes[2,1] = 3
+            EpisodeOutcomes[3,1] = 0
+            }
+    
+        if(initstate == 2) #State Low
+    if(ActionDecider[1]<=Policy[2,1]){
+        EpisodeOutcomes[2,1] = 1
+         if(RewardDecider[i] < as.numeric(SASRp[3,5]))
+    EpisodeOutcomes[3,1] = -3
+       else
+           EpisodeOutcomes[3,1] = 2
+        }
+        else if(ActionDecider[1]<=(Policy[2,1] + Policy[2,2])){
+            EpsiodeOutcomes[2,1] = 2
+            EpisodeOutcomes[3,1] = 1
+            } else {
+            EpisodeOutcomes[2,1] = 3
+            EpisodeOutcomes[3,1] = 0
+            }
+    
+
+
+for(i in 2: Eplength){
+    #first find future state
+# print(list(i,StateDecider[i]))
+ #   print(list(i,ActionDecider[i]))
+  #  print(list(i,RewardDecider[i]))
+       
+    if(EpisodeOutcomes[1,i-1] == 1 && EpisodeOutcomes[2,i-1] == 1){#Previous state was high and action was search
+        if(StateDecider[i]< as.numeric(SASRp[1,5]))
+            EpisodeOutcomes[1,i] = 1#high state
+            else
+                EpisodeOutcomes[1,i] = 2 #low state
+        }
+    if(EpisodeOutcomes[1,i-1] == 1 && EpisodeOutcomes[2,i-1] == 2){#Previous state was high and action was wait
+            EpisodeOutcomes[1,i] = 1#high state
+            
+        }
+    if(EpisodeOutcomes[1,i-1] == 1 && EpisodeOutcomes[2,i-1] == 3){#Previous state was high and action was recharge
+            EpisodeOutcomes[1,i] = 1#high state
+           
+        }  
+    if(EpisodeOutcomes[1,i-1] == 2 && EpisodeOutcomes[2,i-1] == 1){#Previous state was low and action was search
+        if(StateDecider[i]<= as.numeric(SASRp[3,5]))
+            EpisodeOutcomes[1,i] = 1#high state
+            else
+                EpisodeOutcomes[1,i] = 2 #low state
+        }       
+     if(EpisodeOutcomes[1,i-1] == 2 && EpisodeOutcomes[2,i-1] == 2){#Previous state was low and action was wait
+                EpisodeOutcomes[1,i] = 2 #low state
+        }  
+     if(EpisodeOutcomes[1,i-1] == 2 && EpisodeOutcomes[2,i-1] == 3){#Previous state was low and action was recharge
+                EpisodeOutcomes[1,i] = 1 #high state
+        }
+       ## Now Figuring out next actions
+      if(EpisodeOutcomes[1,i] == 1){ #if in high state
+          if(ActionDecider[i]<= Policy[1,1]){
+              EpisodeOutcomes[2,i] = 1 #action search
+              EpisodeOutcomes[3,i] = 2 #Reward for search action
+              }
+         else if(ActionDecider[i]<= (Policy[1,1] + Policy[1,2])){
+              EpisodeOutcomes[2,i] = 2 #action wait
+              EpisodeOutcomes[3,i] = 1 #Reward for wait action
+              } else{
+              EpisodeOutcomes[2,i] = 3 #action recharge
+              EpisodeOutcomes[3,i] = 0 #Reward for recharge action
+          }
+             }
+     if(EpisodeOutcomes[1,i] == 2){ #if in low state
+          if(ActionDecider[i]<= Policy[2,1]){
+              EpisodeOutcomes[2,i] = 1 #action search
+              if(RewardDecider[i]<= as.numeric(SASRp[3,5]))
+              EpisodeOutcomes[3,i] = -3 #Reward for search action
+                  else
+                      EpisodeOutcomes[3,i] = 2 #Reward for search action
+              }
+         else if(ActionDecider[i]<= (Policy[2,1] + Policy[2,2])){
+              EpisodeOutcomes[2,i] = 2 #action wait
+              EpisodeOutcomes[3,i] = 1 #Reward for wait action
+              } else{
+              EpisodeOutcomes[2,i] = 3 #action recharge
+              EpisodeOutcomes[3,i] = 0 #Reward for recharge action
+          }
+             }
+    }
+    return(EpisodeOutcomes)
+    }
+EpisodeOutcomes = SimulateEpisodeCanRecycler(matrix(c(0.7,0.1,0.2,0.7,0.1,0.2), nrow = 2, ncol = 3),SASRp,25000,1,10)
+         # SimulateEpisodeCanRecycler(matrix(c(0.7,0.1,0.2,0.7,0.1,0.2), nrow = 2, ncol = 3),SASRp,25000,1,1)
+         #EpisodeOutcomes
+EpisodeReward = SimulateEpisodeCanRecycler(matrix(c(0.7,0.1,0.2,0.7,0.1,0.2), nrow = 2, ncol = 3),SASRp,25000,1,10)[3,]
+EpisodeAction = SimulateEpisodeCanRecycler(matrix(c(0.7,0.1,0.2,0.7,0.1,0.2), nrow = 2, ncol = 3),SASRp,25000,1,10)[2,]
+EpisodeState = SimulateEpisodeCanRecycler(matrix(c(0.7,0.1,0.2,0.7,0.1,0.2), nrow = 2, ncol = 3),SASRp,25000,1,10)[1,] 
+         #PART C
+         
+ApplySARSA = function(stepsize,nparam, initQestim=matrix(c(e11,e12,e21,e22,e31,e32),dimnames = list(c("State1", "State2"),c("Action1","Action2","Action3"))), EpisodeOutcomes,DF){
+
+#initQestim <- matrix(0, nrow=2, ncol=3,dimnames = list(c("State1", "State2"),c("Action1","Action2","Action3")))    
+ 
+#would start by initalizing your Q estimates, made here
+Qestimmat <- matrix(0,nrow=6,ncol=((ncol(EpisodeOutcomes))))
+    for(i in 1:nparam){
+        Qestimmat[1,i] = initQestim[1,1]
+        Qestimmat[2,i] = initQestim[1,2]
+        Qestimmat[3,i] = initQestim[1,3]
+        Qestimmat[4,i] = initQestim[2,1]
+        Qestimmat[5,i] = initQestim[2,2]
+        Qestimmat[6,i] = initQestim[2,3]
+        }
+    
+ # time
+GFunction = rep(0,ncol(EpisodeOutcomes))
+DiscountReward = rep(0, nparam)    
+#loop for each episode
+#episode lengths can later be changed
+#not sure on the loop
+for(t in 1:ncol(EpisodeOutcomes)){
+    
+  #  for(j in 1:min(nparam ,ncol(EpisodeOutcomes) - t)){
+            if(t + nparam<= ncol(EpisodeOutcomes)){
+        if(EpisodeAction[min(nparam + t,ncol(EpisodeOutcomes))] == 1 && EpisodeState[min(nparam + t,ncol(EpisodeOutcomes))] == 1){
+           for(j in 1:nparam){ 
+               if( j == 1)
+               DiscountReward[1] = EpisodeReward[t]
+                   if(j>1)
+        DiscountReward[j] = DF^(j - 1) * EpisodeReward[j + t -1] + DiscountReward[j-1]
+               }
+            GFunction[t] = DiscountReward[nparam] + DF^(nparam) * Qestimmat[1,t+nparam-1]
+            }
+       if(EpisodeAction[min(nparam + t,ncol(EpisodeOutcomes))] == 2 && EpisodeState[min(nparam + t,ncol(EpisodeOutcomes))] == 1){
+        for(j in 1:nparam){ 
+               if( j == 1)
+               DiscountReward[1] = EpisodeReward[t]
+                   if(j>1)
+        DiscountReward[j] = DF^(j - 1) * EpisodeReward[j + t -1] + DiscountReward[j-1]
+               }
+            GFunction[t] = DiscountReward[nparam] + DF^(nparam) * Qestimmat[2,t+nparam-1]
+            }
+       if(EpisodeAction[min(nparam + t,ncol(EpisodeOutcomes))] == 3 && EpisodeState[min(nparam + t,ncol(EpisodeOutcomes))] == 1){
+        for(j in 1:nparam){ 
+               if( j == 1)
+               DiscountReward[1] = EpisodeReward[t]
+                   if(j>1)
+        DiscountReward[j] = DF^(j - 1) * EpisodeReward[j + t -1] + DiscountReward[j-1]
+               }
+            GFunction[t] = DiscountReward[nparam] + DF^(nparam) * Qestimmat[3,t+nparam-1]
+            }
+        if(EpisodeAction[min(nparam + t,ncol(EpisodeOutcomes))] == 1 && EpisodeState[min(nparam + t,ncol(EpisodeOutcomes))] == 2){
+        for(j in 1:nparam){ 
+               if( j == 1)
+               DiscountReward[1] = EpisodeReward[t]
+                   if(j>1)
+        DiscountReward[j] = DF^(j - 1) * EpisodeReward[j + t -1] + DiscountReward[j-1]
+               }
+            GFunction[t] = DiscountReward[nparam] + DF^(nparam) * Qestimmat[4,t+nparam-1]
+            }
+       if(EpisodeAction[min(nparam + t,ncol(EpisodeOutcomes))] == 2 && EpisodeState[min(nparam + t,ncol(EpisodeOutcomes))] == 2){
+      for(j in 1:nparam){ 
+               if( j == 1)
+               DiscountReward[1] = EpisodeReward[t]
+                   if(j>1)
+        DiscountReward[j] = DF^(j - 1) * EpisodeReward[j + t -1] + DiscountReward[j-1]
+               }
+            GFunction[t] = DiscountReward[nparam] + DF^(nparam) * Qestimmat[5,t+nparam-1]
+            }
+        if(EpisodeAction[min(nparam + t,ncol(EpisodeOutcomes))] == 3 && EpisodeState[min(nparam + t,ncol(EpisodeOutcomes))] == 2){
+      for(j in 1:nparam){ 
+               if( j == 1)
+               DiscountReward[1] = EpisodeReward[t]
+                   if(j>1)
+        DiscountReward[j] = DF^(j - 1) * EpisodeReward[j + t -1] + DiscountReward[j-1]
+               }
+            GFunction[t] = DiscountReward[nparam] + DF^(nparam) * Qestimmat[6,t+nparam-1]
+            }
+          #  }
+        }
+    if(t + nparam<= ncol(EpisodeOutcomes)){
+    if(EpisodeAction[t] == 1 && EpisodeState[t] == 1){
+        Qestimmat[1, t + nparam] = Qestimmat[1,t + nparam - 1] + (stepsize * (GFunction[t] - Qestimmat[1,t + nparam - 1]))
+         Qestimmat[2, t + nparam] = Qestimmat[2, t + nparam - 1]
+        Qestimmat[3, t + nparam] = Qestimmat[3, t + nparam - 1]
+        Qestimmat[4, t + nparam] = Qestimmat[4, t + nparam - 1]
+        Qestimmat[5, t + nparam] = Qestimmat[5, t + nparam - 1]
+        Qestimmat[6, t + nparam] = Qestimmat[6, t + nparam - 1]
+        } 
+    if(EpisodeAction[t] == 2 && EpisodeState[t] == 1){
+        Qestimmat[2, t + nparam] = Qestimmat[2,t + nparam - 1] + (stepsize * (GFunction[t] - Qestimmat[2,t + nparam - 1]))
+        Qestimmat[1, t + nparam] = Qestimmat[1, t + nparam - 1]
+        Qestimmat[3, t + nparam] = Qestimmat[3, t + nparam - 1]
+        Qestimmat[4, t + nparam] = Qestimmat[4, t + nparam - 1]
+        Qestimmat[5, t + nparam] = Qestimmat[5, t + nparam - 1]
+        Qestimmat[6, t + nparam] = Qestimmat[6, t + nparam - 1]
+        }
+    if(EpisodeAction[t] == 3 && EpisodeState[t] == 1){
+       Qestimmat[3, t + nparam] = Qestimmat[3,t + nparam - 1] + (stepsize * (GFunction[t] - Qestimmat[3,t + nparam - 1]))
+        Qestimmat[2, t + nparam] = Qestimmat[2, t + nparam - 1]
+        Qestimmat[1, t + nparam] = Qestimmat[1, t + nparam - 1]
+        Qestimmat[4, t + nparam] = Qestimmat[4, t + nparam - 1]
+        Qestimmat[5, t + nparam] = Qestimmat[5, t + nparam - 1]
+        Qestimmat[6, t + nparam] = Qestimmat[6, t + nparam - 1]
+        }
+    if(EpisodeAction[t] == 1 && EpisodeState[t] == 2){
+        Qestimmat[4, t + nparam] = Qestimmat[4,t + nparam - 1] + (stepsize * (GFunction[t] - Qestimmat[4,t + nparam - 1]))
+        Qestimmat[2, t + nparam] = Qestimmat[2, t + nparam - 1]
+        Qestimmat[3, t + nparam] = Qestimmat[3, t + nparam - 1]
+        Qestimmat[1, t + nparam] = Qestimmat[1, t + nparam - 1]
+        Qestimmat[5, t + nparam] = Qestimmat[5, t + nparam - 1]
+        Qestimmat[6, t + nparam] = Qestimmat[6, t + nparam - 1]
+        }
+    if(EpisodeAction[t] == 2 && EpisodeState[t] == 2){
+        Qestimmat[5, t + nparam] = Qestimmat[5,t + nparam - 1] + (stepsize * (GFunction[t] - Qestimmat[5,t + nparam - 1]))
+        Qestimmat[2, t + nparam] = Qestimmat[2, t + nparam - 1]
+        Qestimmat[3, t + nparam] = Qestimmat[3, t + nparam - 1]
+        Qestimmat[4, t + nparam] = Qestimmat[4, t + nparam - 1]
+        Qestimmat[1, t + nparam] = Qestimmat[1, t + nparam - 1]
+        Qestimmat[6, t + nparam] = Qestimmat[6, t + nparam - 1]
+        }
+    if(EpisodeAction[t] == 3 && EpisodeState[t] == 2){
+        Qestimmat[6, t + nparam] = Qestimmat[6,t + nparam - 1] + (stepsize * (GFunction[t] - Qestimmat[6,t + nparam - 1]))
+        Qestimmat[2, t + nparam] = Qestimmat[2, t + nparam - 1]
+        Qestimmat[3, t + nparam] = Qestimmat[3, t + nparam - 1]
+        Qestimmat[4, t + nparam] = Qestimmat[4, t + nparam - 1]
+        Qestimmat[5, t + nparam] = Qestimmat[5, t + nparam - 1]
+        Qestimmat[1, t + nparam] = Qestimmat[1, t + nparam - 1]
+        }    
+    
+}
+    }
+           
+#T will define an episode length
+return(list(Qestimmat))
+    
+           }
+           
+         
+         
+firstn = ApplySARSA(0.01,1,initQestim=matrix(c(0,0,0,0,0,0), nrow = 2, ncol = 3),EpisodeOutcomes,0.9)
+secondn = ApplySARSA(0.01,5,initQestim=matrix(c(0,0,0,0,0,0), nrow = 2, ncol = 3),EpisodeOutcomes,0.9) 
+thirdn = ApplySARSA(0.01,20,initQestim=matrix(c(0,0,0,0,0,0), nrow = 2, ncol = 3),EpisodeOutcomes,0.9) 
+ 
+row1col1 = CalculatePolicyActionValueFunction(matrix(c(0.7,0.1,0.2,0.7,0.1,0.2), nrow = 2, ncol = 3),SASRp,0.9)[1,1] 
+row1col2 = CalculatePolicyActionValueFunction(matrix(c(0.7,0.1,0.2,0.7,0.1,0.2), nrow = 2, ncol = 3),SASRp,0.9)[1,2] 
+row1col3 = CalculatePolicyActionValueFunction(matrix(c(0.7,0.1,0.2,0.7,0.1,0.2), nrow = 2, ncol = 3),SASRp,0.9)[1,3] 
+row2col1 = CalculatePolicyActionValueFunction(matrix(c(0.7,0.1,0.2,0.7,0.1,0.2), nrow = 2, ncol = 3),SASRp,0.9)[2,1]
+row2col2 = CalculatePolicyActionValueFunction(matrix(c(0.7,0.1,0.2,0.7,0.1,0.2), nrow = 2, ncol = 3),SASRp,0.9)[2,2] 
+row2col3 = CalculatePolicyActionValueFunction(matrix(c(0.7,0.1,0.2,0.7,0.1,0.2), nrow = 2, ncol = 3),SASRp,0.9)[2,3]         
+         
+         ##PART D
+         
+         RSMEmat = matrix(0, nrow = 3, ncol = ncol(EpisodeOutcomes))
+         for( t in 1:ncol(EpisodeOutcomes)){
+             RSMEmat[1,t] = sqrt((firstn[[1]][1,t] - row1col1)^2 + (firstn[[1]][2,t] - row1col2)^2 + (firstn[[1]][3,t] - row1col3)^2
+                           + (firstn[[1]][4,t] - row2col1)^2 + (firstn[[1]][5,t] - row2col2)^2 + (firstn[[1]][6,t] - row2col3)^2)  
+            RSMEmat[2,t] = sqrt((secondn[[1]][1,t] - row1col1)^2 + (secondn[[1]][2,t] - row1col2)^2 + (secondn[[1]][3,t] - row1col3)^2
+                           + (secondn[[1]][4,t] - row2col1)^2 + (secondn[[1]][5,t] - row2col2)^2 + (secondn[[1]][6,t] - row2col3)^2)
+           RSMEmat[3,t] = sqrt((thirdn[[1]][1,t] - row1col1)^2 + (thirdn[[1]][2,t] - row1col2)^2 + (thirdn[[1]][3,t] - row1col3)^2
+                           + (thirdn[[1]][4,t] - row2col1)^2 + (thirdn[[1]][5,t] - row2col2)^2 + (thirdn[[1]][6,t] - row2col3)^2) 
+             
+             }
+#print(RSMEmat)
+           
+         
+ t = 1:10000
+
+plot(t, RSMEmat[1,t],
+main="Mean Square Error over time",
+ylab="Mean Square Error",
+xlab ="plays",
+type="l",
+col="dark green",
+     ylim=c(0,30))
+lines(t,RSMEmat[2,t], col="red")
+lines(t,RSMEmat[3,t], col="blue")
+legend("topleft",
+c("RSMEmat 1","RSMEmat 2", "RSMEmat 3"),
+fill=c("dark green","red", "blue"))
+         
+           
+             ##PART E
+     ApplyQLearning = function(stepsize, initQestim=matrix(c(e11,e12,e21,e22,e31,e32)), EpisodeOutcomes, DF){
+         Qestim = matrix(0, nrow = 2, ncol = 3)
+         Qestim[1,1] = initQestim[1,1]
+         Qestim[1,2] = initQestim[1,2]
+         Qestim[1,3] = initQestim[1,3]
+         Qestim[2,1] = initQestim[2,1]
+         Qestim[2,2] = initQestim[2,2]
+         Qestim[2,3] = initQestim[2,3]
+         
+        for(t in 1:(ncol(EpisodeOutcomes) - 1)){
+          
+                if(EpisodeState[t] == 1 && EpisodeAction[t] == 1){
+                  if((Qestim[EpisodeState[t+1],1] >= Qestim[EpisodeState[t+1],2]) && (Qestim[EpisodeState[t+1],1] >= Qestim[EpisodeState[t+1],3]))
+                      BestAction = 1
+                     else if ((Qestim[EpisodeState[t+1],2] > Qestim[EpisodeState[t+1],1]) && (Qestim[EpisodeState[t+1],2] >= Qestim[EpisodeState[t+1],3]))
+                         BestAction = 2
+                         else
+                             BestAction = 3
+                    Qestim[1,1] = Qestim[1,1] + stepsize *(EpisodeReward[t] + DF * Qestim[EpisodeState[t+1], BestAction] - Qestim[1,1])
+                    }
+                         
+                   if(EpisodeState[t] == 1 && EpisodeAction[t] == 2){
+                  if((Qestim[EpisodeState[t+1],1] >= Qestim[EpisodeState[t+1],2]) && (Qestim[EpisodeState[t+1],1] >= Qestim[EpisodeState[t+1],3]))
+                      BestAction = 1
+                     else if ((Qestim[EpisodeState[t+1],2] > Qestim[EpisodeState[t+1],1]) && (Qestim[EpisodeState[t+1],2] >= Qestim[EpisodeState[t+1],3]))
+                         BestAction = 2
+                         else
+                             BestAction = 3
+                    Qestim[1,2] = Qestim[1,2] + stepsize *(EpisodeReward[t] + DF * Qestim[EpisodeState[t+1], BestAction] - Qestim[1,2])
+                    }
+                         
+                 if(EpisodeState[t] == 1 && EpisodeAction[t] == 3){
+                  if((Qestim[EpisodeState[t+1],1] >= Qestim[EpisodeState[t+1],2]) && (Qestim[EpisodeState[t+1],1] >= Qestim[EpisodeState[t+1],3]))
+                      BestAction = 1
+                     else if ((Qestim[EpisodeState[t+1],2] > Qestim[EpisodeState[t+1],1]) && (Qestim[EpisodeState[t+1],2] >= Qestim[EpisodeState[t+1],3]))
+                         BestAction = 2
+                         else
+                             BestAction = 3
+                    Qestim[1,3] = Qestim[1,3] + stepsize *(EpisodeReward[t] + DF * Qestim[EpisodeState[t+1], BestAction] - Qestim[1,3])
+                             }
+                             
+                  if(EpisodeState[t] == 2 && EpisodeAction[t] == 1){
+                  if((Qestim[EpisodeState[t+1],1] >= Qestim[EpisodeState[t+1],2]) && (Qestim[EpisodeState[t+1],1] >= Qestim[EpisodeState[t+1],3]))
+                      BestAction = 1
+                     else if ((Qestim[EpisodeState[t+1],2] > Qestim[EpisodeState[t+1],1]) && (Qestim[EpisodeState[t+1],2] >= Qestim[EpisodeState[t+1],3]))
+                         BestAction = 2
+                         else
+                             BestAction = 3
+                    Qestim[2,1] = Qestim[2,1] + stepsize *(EpisodeReward[t] + DF * Qestim[EpisodeState[t+1], BestAction] - Qestim[2,1])
+                    }
+                         
+                 if(EpisodeState[t] == 2 && EpisodeAction[t] == 2){
+                  if((Qestim[EpisodeState[t+1],1] >= Qestim[EpisodeState[t+1],2]) && (Qestim[EpisodeState[t+1],1] >= Qestim[EpisodeState[t+1],3]))
+                      BestAction = 1
+                     else if ((Qestim[EpisodeState[t+1],2] > Qestim[EpisodeState[t+1],1]) && (Qestim[EpisodeState[t+1],2] >= Qestim[EpisodeState[t+1],3]))
+                         BestAction = 2
+                         else
+                             BestAction = 3
+                    Qestim[2,2] = Qestim[2,2] + stepsize *(EpisodeReward[t] + DF * Qestim[EpisodeState[t+1], BestAction] - Qestim[2,2])
+                    }          
+                         
+                   if(EpisodeState[t] == 2 && EpisodeAction[t] == 3){
+                  if((Qestim[EpisodeState[t+1],1] >= Qestim[EpisodeState[t+1],2]) && (Qestim[EpisodeState[t+1],1] >= Qestim[EpisodeState[t+1],3]))
+                      BestAction = 1
+                     else if ((Qestim[EpisodeState[t+1],2] > Qestim[EpisodeState[t+1],1]) && (Qestim[EpisodeState[t+1],2] >= Qestim[EpisodeState[t+1],3]))
+                         BestAction = 2
+                         else
+                             BestAction = 3
+                    Qestim[2,3] = Qestim[2,3] + stepsize *(EpisodeReward[t] + DF * Qestim[EpisodeState[t+1], BestAction] - Qestim[2,3])
+                    }        
+                              
+             
+            }
+            return(Qestim)          
+         }
+         ApplyQLearning(0.01, matrix(c(0,0,0,0,0,0), nrow = 2, ncol = 3), EpisodeOutcomes, 0.9)
