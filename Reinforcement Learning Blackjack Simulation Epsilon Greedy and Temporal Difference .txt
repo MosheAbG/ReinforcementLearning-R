@@ -1,0 +1,388 @@
+## PIECE 3
+## This approach combines epsilon greedy with TD(0)
+
+BlackJackSimulation = function(theseed,NumberHands, alpha, DF){
+ set.seed(theseed) 
+
+     #Initializing the results matrix which has a row for each state 
+    # The first columns are the total reward for each state 
+    # The next 2 are the number of times each state was visited
+    # The last 2 are the average reward in each state
+    ResultsMatrix = matrix(0, nrow = 9, ncol = 6)
+    
+    #This will be for TD(0) State Action values
+    Qmat = matrix(0, nrow = 9, ncol = 2)
+    for( j in 1:NumberHands){
+   # Initial sum of Player's hand     
+SumOfHand = 0
+ 
+# A vector of possible rewards to be implemented later    
+# Initially All aces count for 11, later values may be changed   
+Ace = 11
+ # Player gets 2 cards randomly   
+ PlayerCards = rep(0,2)   
+PlayerCards[1] = sample(c(2:10,10,10,10,Ace),1, replace = TRUE)
+ PlayerCards[2] = sample(c(2:10,10,10,10,Ace),1, replace = TRUE)  
+
+# check sum of player's hand after each step
+   
+    IncrimentalSumOfHand = rep(0, length(PlayerCards))
+           
+   
+   # Dealer gets 2 cards randomly  
+   DealerCards = rep(0,2)  
+    SumOfDealerHand = 0
+DealerCards[1] = sample(c(2:10,10,10,10,Ace),1, replace = TRUE)
+ DealerCards[2] = sample(c(2:10,10,10,10,Ace),1, replace = TRUE)  
+  # Defining 2 new variables, same as for player
+    IncrimentalSumOfDealerHand = rep(0, length(DealerCards))
+  
+    # Initially sum of hand is just sum of 2 cards
+    SumOfDealerHand = sum(DealerCards)
+#Player part will come later
+# If both cards are aces, then second ace is worth one
+
+    if((DealerCards[1] == Ace) && (DealerCards[2] == Ace)){
+        DealerCards[2] = 1
+        SumOfDealerHand = 12
+        
+        }
+  
+  
+# Getting sum of hand after each additional card
+        IncrimentalSumOfDealerHand[1] = DealerCards[1]
+        IncrimentalSumOfDealerHand[2] = DealerCards[1] + DealerCards[2]
+   
+ #Switch back to player
+#Initial sum of first 2 cards   
+    SumOfHand = sum(PlayerCards)
+
+# If both are aces still set to one and second ace becomes 1 so sum less than 22
+    if((PlayerCards[1] == Ace) && (PlayerCards[2] == Ace)){
+        PlayerCards[2] = 1
+        SumOfHand = 12
+        }
+        #This vector will contain all future selected actions
+        ActionVec = rep(0,(length(PlayerCards) - 2))
+  
+    #If first card is ace,then initialize 1 usable ace
+ 
+        IncrimentalSumOfHand[1] = PlayerCards[1]
+        IncrimentalSumOfHand[2] = PlayerCards[1] + PlayerCards[2]
+  
+     while(SumOfHand<12){
+        DrawCard = sample(c(2:10,10,10,10,Ace), 1 , replace = TRUE)
+        NewHand = append(PlayerCards, DrawCard)# Add drawn card to hand
+        PlayerCards = NewHand
+        SumOfHand = sum(PlayerCards)# New sum of hand is sum of all cards in hand
+         IncrimentalSumOfHand[length(PlayerCards)] = SumOfHand
+         ActionVec[length(PlayerCards) - 2] = 1 #In this stage action is always to hit
+        if(SumOfHand>21 ){
+            SumOfHand = 12
+            PlayerCards[length(PlayerCards)] = 1
+            IncrimentalSumOfHand[length(PlayerCards)] = SumOfHand
+        }
+         }
+          
+    #The action to be taken at each stage
+    # Either the player hits or stands
+    #The reward at each step
+    #Reward is only for final action
+    # Intermediate steps do not receive a reward until end of epsiode
+
+    # A random number between 0 and 1 to see if we are greedy 
+   
+   eps = 0.1
+        probExploit = runif(NumberHands,0,1)
+       
+   # Main part of code
+
+        Action = 0
+          while(SumOfHand < 21 && Action != 2){ #This continues while player both chooses to hit and is not bust
+              
+             
+              if(probExploit[j] > eps){ #Select greedy action
+             
+                if(ResultsMatrix[SumOfHand - 11,5] > ResultsMatrix[SumOfHand - 11,6]){ #Deciding which action to pick
+                      Action = 1
+                      }else{ 
+                    Action = 2
+                  ActionVec[length(PlayerCards) - 1] = Action
+                     
+                          
+                          
+                          break
+                    }
+                 
+                          
+                  if(Action == 1){
+                      
+               DrawCard = sample(c(2:10,10,10,10,Ace), 1 , replace = TRUE)
+              NewHand = append(PlayerCards, DrawCard)# Add drawn card to hand
+              PlayerCards = NewHand
+                      ActionVec[length(PlayerCards) - 2] = Action
+              SumOfHand = sum(PlayerCards)# New sum of hand is sum of all cards in hand
+              
+            #New incrimental sum is sum of old cards plus new card  
+              NewSum = append(IncrimentalSumOfHand[length(PlayerCards) - 1 ], DrawCard)
+              
+              IncrimentalSumOfHand[length(PlayerCards)] = sum(NewSum)
+            
+ # If sum of hand greater than 21, change last recieved ace from 11 to 1
+# Update other variables accordingly 
+                for(i in 1:length(PlayerCards)){      
+    if(SumOfHand > 21){ 
+        
+            if(PlayerCards[i] == 11){
+                
+              PlayerCards[i] = 1
+              
+#Incriment total sum and incriment incrimental sum
+                SumOfHand = sum(PlayerCards)
+               IncrimentalSumOfHand[length(PlayerCards)] = SumOfHand
+                
+                }
+            
+}
+                    }
+                     
+       }
+                  }
+              
+              if(probExploit[j] <= eps){ ## Choose randomly whether to hit or stand
+                Action = sample(2,1,replace = TRUE)
+                  if(Action == 1){
+                      #DrawCard# Hit and continue with rest of process
+                    
+                  
+               DrawCard = sample(c(2:10,10,10,10,Ace), 1 , replace = TRUE)
+              NewHand = append(PlayerCards, DrawCard)# Add drawn card to hand
+              PlayerCards = NewHand
+              SumOfHand = sum(PlayerCards)# New sum of hand is sum of all cards in hand
+# 
+               ActionVec[length(PlayerCards) - 2] = Action
+            #New incrimental sum is sum of old cards plus new card  
+              NewSum = append(IncrimentalSumOfHand[length(PlayerCards) - 1 ], DrawCard)
+              
+              IncrimentalSumOfHand[length(PlayerCards)] = sum(NewSum)
+                      
+            
+              
+         
+ # If sum of hand greater than 21, change last recieved ace from 11 to 1
+# Update other variables accordingly
+    #Same as above
+    if(SumOfHand > 21){ 
+        for( i in length(PlayerCards):1){
+            if(PlayerCards[i] == 11){
+                
+              PlayerCards[i] = 1
+              
+#Incriment total sum and incriment incrimental sum
+                SumOfHand = sum(PlayerCards)
+               IncrimentalSumOfHand[length(PlayerCards)] = SumOfHand
+                break
+                }
+            }
+            
+
+ }
+}
+              if(Action == 2){ #if choose to stand then hand ends for player
+                 
+                  ActionVec[length(PlayerCards) - 1] = Action
+                      
+                  break
+                          }
+                  }
+              }
+                      
+              
+   
+    if((SumOfHand<22)){
+        if(!(SumOfHand == 21 && length(PlayerCards) == 2 )){
+        
+  #Dealer hits for anything under 17, until he reaches a number between 17 and 21 or goes busts
+# The following code will be sparsely commented as it's very similar to above    
+          while(SumOfDealerHand < 17){
+               DrawCard = sample(c(2:10,10,10,10,Ace), 1 , replace = TRUE)
+              NewHand = append(DealerCards, DrawCard)
+              DealerCards = NewHand
+              SumOfDealerHand = sum(DealerCards)              
+              
+       
+              NewSum = append(IncrimentalSumOfDealerHand[length(DealerCards) - 1 ], DrawCard)
+              
+              IncrimentalSumOfDealerHand[length(DealerCards)] = sum(NewSum)
+            
+              
+              
+              
+    # If dealer hand greater than 21 and ace(s) are 11, then change ace to 1
+# Updater dealer usable ace accordingly  
+    if(SumOfDealerHand > 21){ 
+        for( i in length(DealerCards):1){
+            if(DealerCards[i] == 11){
+              DealerCards[i] = 1
+               
+                SumOfDealerHand = sum(DealerCards)
+               IncrimentalSumOfDealerHand[length(DealerCards)] = SumOfDealerHand
+                break
+                }
+            
+
+
+ }
+}
+              }
+        }
+        }
+ 
+        
+        
+     
+    # Different Reward scenarios depending on both player and dealer sum
+# If player busts, he loses
+ if(SumOfHand>21){
+     Reward = -1
+     }
+
+# If both have naturals then tie
+    else if((SumOfHand == 21 && length(PlayerCards) == 2) && (SumOfDealerHand == 21 && length(DealerCards) == 2)){
+        Reward = 0
+        }
+#If player has natural and dealer doesn't player wins
+   else if((SumOfHand == 21 && length(PlayerCards) == 2) && (!(SumOfDealerHand == 21 && length(DealerCards) == 2 ))){
+        Reward = 3
+        }
+#If dealer has natural and player doesn't then dealer wins
+   else if((SumOfDealerHand == 21 && length(DealerCards) == 2) && (!(SumOfHand == 21 && length(PlayerCards) == 2 ))){
+        Reward = -1
+        }
+      else if((SumOfHand == 21 && length(PlayerCards)!=2) && SumOfDealerHand != 21){
+          Reward = 2
+          }
+# If both players have same sum, then it's a tie
+    else if((SumOfHand == SumOfDealerHand)){
+        Reward = -1
+        }
+# If player has better hand than dealer then player wins
+    else if(SumOfHand<22 && (SumOfHand>SumOfDealerHand)){
+        Reward = 1
+        }
+   else if((SumOfHand<22 && SumOfDealerHand<22) && (SumOfHand<SumOfDealerHand)){
+        Reward = -1
+        }
+       # If dealer busts, he losses
+    else if(SumOfDealerHand > 21){
+        Reward = 1
+        }
+       
+ 
+        
+        for( k in 1:(length(PlayerCards) - 1)){
+      if(IncrimentalSumOfHand[k+1] < 21 && IncrimentalSumOfHand[k+1] > 11){
+        if(ActionVec[k] == 1){
+            
+            if(IncrimentalSumOfHand[k+2] < 21){
+                
+#chosen action has updated mean
+                
+                
+a = ResultsMatrix[IncrimentalSumOfHand[k + 1] -11 ,1 ] = ResultsMatrix[IncrimentalSumOfHand[k+1] -11 ,1 ] + Reward #Update Reward for chosen action
+b = ResultsMatrix[IncrimentalSumOfHand[k + 1] -11 ,3 ] = ResultsMatrix[IncrimentalSumOfHand[k + 1] -11 ,3 ] + 1 #Update number of actions chosen
+ResultsMatrix[IncrimentalSumOfHand[k + 1] -11 ,5 ] = a/b #Update Average reward
+               
+     
+                #Code for TD(0)
+                #For actual algorithm, need to know best action in future state
+                if(Qmat[IncrimentalSumOfHand[k + 2] - 11, 2] >= Qmat[IncrimentalSumOfHand[k + 2] - 11, 1])
+    BestAction = 2
+    else
+        BestAction = 1
+        #Recursive formual defined in the slides and in the project write up
+   d = Qmat[IncrimentalSumOfHand[k+1] - 11 , 1] = Qmat[IncrimentalSumOfHand[k+1] -11, 1] + 
+        alpha * (Reward + DF *Qmat[IncrimentalSumOfHand[k+2] -11, BestAction] - Qmat[IncrimentalSumOfHand[k+1] -11 ,1])
+        
+        
+                
+                
+                            
+            }
+               if(IncrimentalSumOfHand[k+2] == 21){
+                   #Same idea over a bunch of times
+                     a = ResultsMatrix[IncrimentalSumOfHand[k + 1] -11 ,1 ] = ResultsMatrix[IncrimentalSumOfHand[k+1] -11 ,1 ] + Reward
+b = ResultsMatrix[IncrimentalSumOfHand[k + 1] -11 ,3 ] = ResultsMatrix[IncrimentalSumOfHand[k + 1] -11 ,3 ] + 1
+ResultsMatrix[IncrimentalSumOfHand[k + 1] -11 ,5 ] = a/b
+
+                   
+                   d= Qmat[IncrimentalSumOfHand[k+1] - 11 , 1] = Qmat[IncrimentalSumOfHand[k+1] -11, 1] +
+                    alpha * (Reward + DF *2 - Qmat[IncrimentalSumOfHand[k+1] -11 ,1])
+                   }
+                     if(IncrimentalSumOfHand[k+2] > 21){
+                        
+                           a = ResultsMatrix[IncrimentalSumOfHand[k + 1] -11 ,1 ] = ResultsMatrix[IncrimentalSumOfHand[k+1] -11 ,1 ] + Reward
+b = ResultsMatrix[IncrimentalSumOfHand[k + 1] -11 ,3 ] = ResultsMatrix[IncrimentalSumOfHand[k + 1] -11 ,3 ] + 1
+ResultsMatrix[IncrimentalSumOfHand[k + 1] -11 ,5 ] = a/b
+               
+                        #Since losing hand therefore thereis no best action, rather the estimate from it is -1 
+                   d= Qmat[IncrimentalSumOfHand[k+1] - 11 , 1] = Qmat[IncrimentalSumOfHand[k+1] -11, 1] +
+                    alpha * (Reward + DF *(-1) - Qmat[IncrimentalSumOfHand[k+1] -11 ,1])
+                  
+                    }
+        }
+          
+            }
+        
+               if(IncrimentalSumOfHand[k+1] < 21 && IncrimentalSumOfHand[k+1] > 11){
+        if(ActionVec[k] == 2 && (length(PlayerCards)>2)){
+          
+#chosen action has updated mean
+a = ResultsMatrix[IncrimentalSumOfHand[k + 1] -11 ,2 ] = ResultsMatrix[IncrimentalSumOfHand[length(PlayerCards)] -11 ,2 ] + Reward
+b = ResultsMatrix[IncrimentalSumOfHand[k + 1] -11 ,4 ] = ResultsMatrix[IncrimentalSumOfHand[length(PlayerCards)] -11 ,4 ] + 1
+ResultsMatrix[IncrimentalSumOfHand[k + 1] -11 ,6 ] = a/b 
+       
+ if(Qmat[IncrimentalSumOfHand[k + 1] - 11, 2] >= Qmat[IncrimentalSumOfHand[k + 1] - 11, 1])
+    BestAction = 2
+    else
+        BestAction = 1
+    #This part is when chosen action is to stand    
+    # The episode ends, so there really isn't a futur state, but we imagine that it's the current state    
+c = Qmat[IncrimentalSumOfHand[k + 1] - 11, 2] = Qmat[IncrimentalSumOfHand[k + 1] - 11, 2] + 
+                                alpha*(Reward + DF * Qmat[IncrimentalSumOfHand[k + 1] - 11,BestAction] - Qmat[IncrimentalSumOfHand[k + 1] - 11, 2])                     
+           
+        }
+              if(length(PlayerCards) == 2 && ActionVec[k] == 2){
+        for( k in 1:1){
+        
+        
+        if(ActionVec[k] == 2 && SumOfHand!=21){
+          
+#chosen action has updated mean
+a = ResultsMatrix[IncrimentalSumOfHand[k + 1] -11 ,2 ] = ResultsMatrix[IncrimentalSumOfHand[length(PlayerCards)] -11 ,2 ] + Reward
+b = ResultsMatrix[IncrimentalSumOfHand[k + 1] -11 ,4 ] = ResultsMatrix[IncrimentalSumOfHand[length(PlayerCards)] -11 ,4 ] + 1
+ResultsMatrix[IncrimentalSumOfHand[k + 1] -11 ,6 ] = a/b 
+           
+if(Qmat[IncrimentalSumOfHand[k + 1] - 11, 2] >= Qmat[IncrimentalSumOfHand[k + 1] - 11, 1])
+    BestAction = 2
+    else
+        BestAction = 1
+    #This part is when chosen action is to stand    
+    # The episode ends, so there really isn't a futur state, but we imagine that it's the current state    
+c = Qmat[IncrimentalSumOfHand[k + 1] - 11, 2] = Qmat[IncrimentalSumOfHand[k + 1] - 11, 2] + 
+                                alpha*(Reward + DF * Qmat[IncrimentalSumOfHand[k + 1] - 11,BestAction] - Qmat[IncrimentalSumOfHand[k + 1] - 11, 2])            
+          
+        }
+        
+        }
+            }
+           
+                   }
+            }
+        
+        }
+        
+       return(list( Qmat, ResultsMatrix))
+       }
+       
+BlackJackSimulation(300,100,0.01, 0.9)
